@@ -1,0 +1,854 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Assignment 8 — DAG Agent Demo</title>
+    <meta name="description" content="Interactive demo of a DAG-based multi-agent orchestrator for EAGV3 Session 8">
+    <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+
+<!-- ═══ Header ══════════════════════════════════════════════════════════ -->
+<header class="header">
+    <div class="header-left">
+        <div class="logo">⟐</div>
+        <h1>Assignment <span>8</span> — DAG Agent</h1>
+        <span class="header-badge">Session 8</span>
+    </div>
+    <div class="header-actions">
+        <button class="btn btn-secondary btn-sm" onclick="runTests()" id="btn-tests">
+            ✓ Run Tests
+        </button>
+        <button class="btn btn-secondary btn-sm" onclick="loadSessions()">
+            ↻ Refresh Sessions
+        </button>
+    </div>
+</header>
+
+<!-- ═══ App Layout ══════════════════════════════════════════════════════ -->
+<div class="app">
+
+    <!-- ── Sidebar ─────────────────────────────────────────────────── -->
+    <aside class="sidebar">
+        <div class="sidebar-section">
+            <h3>Assignment Queries</h3>
+
+            <div class="query-card" data-query="Say hello." onclick="selectQuery(this)">
+                <div class="query-card-label"><span class="badge">hello</span> Minimum DAG</div>
+                <div class="query-card-text">Say hello.</div>
+                <div class="query-card-meta">2 nodes · &lt;3s · Planner → Formatter</div>
+            </div>
+
+            <div class="query-card" data-query="Fetch https://en.wikipedia.org/wiki/Claude_Shannon and tell me his birth date, death date, and three key contributions to information theory." onclick="selectQuery(this)">
+                <div class="query-card-label"><span class="badge">A</span> Shannon Wikipedia</div>
+                <div class="query-card-text">Fetch Shannon's Wikipedia page — extract dates and contributions</div>
+                <div class="query-card-meta">4 nodes · Critic auto-insert · Sequential</div>
+            </div>
+
+            <div class="query-card" data-query="For Lagos, Cairo, and Kinshasa, find current populations and growth rates and tell me which is growing fastest." onclick="selectQuery(this)">
+                <div class="query-card-label"><span class="badge">I</span> Parallel Fan-Out</div>
+                <div class="query-card-text">Three city populations — concurrent researchers</div>
+                <div class="query-card-meta">7 nodes · 3× parallel · asyncio.gather</div>
+            </div>
+
+            <div class="query-card" data-query="Read /nonexistent/path.txt and tell me what's in it." onclick="selectQuery(this)">
+                <div class="query-card-label"><span class="badge">J</span> Graceful Failure</div>
+                <div class="query-card-text">Read a nonexistent file path</div>
+                <div class="query-card-meta">2 nodes · No tools dispatched</div>
+            </div>
+
+            <div class="query-card" data-query="For Lagos, Cairo, and Kinshasa, find current populations and growth rates and tell me which is growing fastest." data-resume="true" onclick="selectQuery(this)">
+                <div class="query-card-label"><span class="badge">K</span> Resumable Execution</div>
+                <div class="query-card-text">Kill mid-run and resume from checkpoint</div>
+                <div class="query-card-meta">Resume demo · --resume flag</div>
+            </div>
+        </div>
+
+        <div class="sidebar-section">
+            <h3>Skill Demos</h3>
+
+            <div class="query-card" data-query="Calculate the frequency of the terms 'attention', 'weight', and 'model' in all five papers in the papers directory. Output a Markdown table showing the frequencies, mean, and variance." onclick="selectQuery(this)">
+                <div class="query-card-label"><span class="badge">4</span> Coder Skill</div>
+                <div class="query-card-text">Term frequency computation in papers</div>
+                <div class="query-card-meta">Coder → SandboxExecutor · Python</div>
+            </div>
+
+            <div class="query-card" data-query="Summarize the Attention paper and list all acronyms used in the abstract with their expansions using the acronym_expander." onclick="selectQuery(this)">
+                <div class="query-card-label"><span class="badge">5</span> Acronym Expander</div>
+                <div class="query-card-text">New skill — extract and expand acronyms</div>
+                <div class="query-card-meta">New skill · YAML-only addition</div>
+            </div>
+        </div>
+
+        <div class="sidebar-section">
+            <h3>Critic Demo</h3>
+
+            <div class="query-card" data-query="Fetch https://en.wikipedia.org/wiki/Claude_Shannon and extract exactly five academic publications with their exact publication years." onclick="selectQuery(this)">
+                <div class="query-card-label"><span class="badge">3</span> Critic Verdict</div>
+                <div class="query-card-text">Trigger Critic pass/fail + recovery splice</div>
+                <div class="query-card-meta">Critic · Recovery Planner · Re-plan cap</div>
+            </div>
+        </div>
+
+        <div class="sidebar-section">
+            <h3>Past Sessions</h3>
+            <div id="sessions-list">
+                <div class="session-item" style="color: var(--text-muted); text-align: center; cursor: default;">
+                    Loading...
+                </div>
+            </div>
+        </div>
+    </aside>
+
+    <!-- ── Main ────────────────────────────────────────────────────── -->
+    <main class="main">
+        <!-- Input -->
+        <div class="input-area">
+            <div class="input-wrapper">
+                <input type="text" id="query-input" placeholder="Enter a query or select one from the sidebar..." />
+                <button class="btn btn-primary" id="btn-run" onclick="runQuery()">
+                    <span class="spinner" id="spinner"></span>
+                    ▶ Run
+                </button>
+                <button class="btn btn-danger btn-sm" id="btn-kill" onclick="killProcess()" style="display: none;">
+                    ✕ Kill
+                </button>
+            </div>
+            <!-- Resume banner (shown after kill) -->
+            <div id="resume-banner" style="display: none;">
+                <div class="resume-banner">
+                    <div class="resume-banner-text">
+                        ⚠ Process killed. Session <strong id="resume-sid-display"></strong> saved to disk.
+                    </div>
+                    <button class="btn btn-resume btn-sm" onclick="resumeQuery()">
+                        ↻ Resume Session
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Content area (starts with welcome, switches to results) -->
+        <div id="content-welcome" class="welcome">
+            <!-- Floating orbs -->
+            <div class="welcome-orb welcome-orb-1"></div>
+            <div class="welcome-orb welcome-orb-2"></div>
+            <div class="welcome-orb welcome-orb-3"></div>
+            <h2>DAG-Based Multi-Agent Orchestrator</h2>
+            <p>Select a query from the sidebar to run the agent, or type your own. Watch the DAG build and execute in real time.</p>
+            <div class="welcome-grid">
+                <div class="welcome-stat">
+                    <div class="number" id="stat-skills">10</div>
+                    <div class="label">Skills</div>
+                </div>
+                <div class="welcome-stat">
+                    <div class="number" id="stat-sessions">—</div>
+                    <div class="label">Sessions</div>
+                </div>
+                <div class="welcome-stat">
+                    <div class="number">22</div>
+                    <div class="label">Unit Tests</div>
+                </div>
+            </div>
+        </div>
+
+        <div id="content-results" style="display: none;">
+            <!-- DAG + Log -->
+            <div class="panels">
+                <div class="panel">
+                    <div class="panel-header">
+                        <span class="panel-title"><span class="icon">⟐</span> DAG Graph</span>
+                        <span id="dag-meta" style="font-size: 12px; color: var(--text-muted);"></span>
+                    </div>
+                    <div class="panel-body">
+                        <div class="dag-canvas" id="dag-canvas">
+                            <div style="color: var(--text-muted); font-size: 13px;">Waiting for execution...</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="panel">
+                    <div class="panel-header">
+                        <span class="panel-title"><span class="icon">⟩</span> Execution Log</span>
+                        <button class="btn btn-secondary btn-sm" onclick="clearLog()">Clear</button>
+                    </div>
+                    <div class="panel-body">
+                        <div class="log-output" id="log-output"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Final Answer -->
+            <div class="panel panel-full">
+                <div class="panel-header">
+                    <span class="panel-title"><span class="icon">✦</span> Final Answer</span>
+                    <span id="answer-meta" style="font-size: 12px; color: var(--text-muted);"></span>
+                </div>
+                <div class="panel-body">
+                    <div class="final-answer" id="final-answer"></div>
+                </div>
+            </div>
+
+            <!-- Test Results (hidden by default) -->
+            <div class="panel panel-full" id="test-panel" style="display: none;">
+                <div class="panel-header">
+                    <span class="panel-title"><span class="icon">✓</span> Unit Test Results</span>
+                    <span id="test-meta" style="font-size: 12px; color: var(--text-muted);"></span>
+                </div>
+                <div class="panel-body">
+                    <div class="test-results" id="test-output"></div>
+                </div>
+            </div>
+        </div>
+    </main>
+</div>
+
+<!-- ═══ Status Bar (bottom progress indicator) ═════════════════════════ -->
+<div class="status-bar" id="status-bar">
+    <div class="status-bar-fill"></div>
+</div>
+
+<!-- ═══ Node Detail Modal ════════════════════════════════════════════════ -->
+<div class="modal-overlay" id="modal-overlay" onclick="closeModal(event)">
+    <div class="modal" onclick="event.stopPropagation()">
+        <div class="modal-header">
+            <h2 id="modal-title">Node Detail</h2>
+            <button class="modal-close" onclick="closeModal()">&times;</button>
+        </div>
+        <div class="modal-body" id="modal-body"></div>
+    </div>
+</div>
+
+<!-- ═══ Scripts ═══════════════════════════════════════════════════════════ -->
+<script>
+const API = '';
+let currentSessionId = null;
+let isRunning = false;
+let resumeSessionId = null;
+let isResumeMode = false;
+
+// ── Init ─────────────────────────────────────────────────────────────
+
+document.addEventListener('DOMContentLoaded', () => {
+    loadSessions();
+    document.getElementById('query-input').addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' && !isRunning) runQuery();
+    });
+});
+
+// ── Query Selection ──────────────────────────────────────────────────
+
+function selectQuery(card) {
+    document.querySelectorAll('.query-card').forEach(c => c.classList.remove('active'));
+    card.classList.add('active');
+    const query = card.dataset.query;
+    document.getElementById('query-input').value = query;
+
+    // Hide resume banner when selecting a new query
+    document.getElementById('resume-banner').style.display = 'none';
+    resumeSessionId = null;
+
+    // Show resume hint for Query K
+    if (card.dataset.resume) {
+        document.getElementById('query-input').placeholder = 'Query K: Click Run, then Kill mid-execution, then Resume';
+    } else {
+        document.getElementById('query-input').placeholder = 'Enter a query or select one from the sidebar...';
+    }
+}
+
+// ── Run Query ────────────────────────────────────────────────────────
+
+async function runQuery() {
+    const input = document.getElementById('query-input');
+    const query = input.value.trim();
+    if (!query || isRunning) return;
+
+    setRunning(true);
+    showResults();
+    clearLog();
+    clearDag();
+    document.getElementById('final-answer').textContent = '';
+    document.getElementById('answer-meta').textContent = '';
+    document.getElementById('resume-banner').style.display = 'none';
+
+    // Show kill button for Query K (resume demo)
+    const selectedCard = document.querySelector('.query-card.active');
+    const isResumable = selectedCard && selectedCard.dataset.resume;
+    if (isResumable) {
+        document.getElementById('btn-kill').style.display = 'flex';
+    }
+
+    const startTime = Date.now();
+
+    try {
+        const response = await fetch(`${API}/api/run`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ query }),
+        });
+
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
+        let buffer = '';
+
+        while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+
+            buffer += decoder.decode(value, { stream: true });
+            const lines = buffer.split('\n');
+            buffer = lines.pop();
+
+            for (const line of lines) {
+                if (line.startsWith('data: ')) {
+                    try {
+                        const event = JSON.parse(line.slice(6));
+                        handleEvent(event, startTime);
+                    } catch (e) {
+                        // skip malformed
+                    }
+                }
+            }
+        }
+    } catch (e) {
+        addLog(`Error: ${e.message}`, 'log-error');
+    }
+
+    document.getElementById('btn-kill').style.display = 'none';
+    setRunning(false);
+    loadSessions();
+}
+
+// ── Resume Query (after kill) ────────────────────────────────────────
+
+async function resumeQuery() {
+    if (!resumeSessionId) return;
+
+    const query = document.getElementById('query-input').value.trim();
+    if (!query) return;
+
+    setRunning(true);
+    document.getElementById('resume-banner').style.display = 'none';
+    clearLog();
+    clearDag();
+    document.getElementById('final-answer').textContent = '';
+    document.getElementById('answer-meta').textContent = '';
+
+    addLog(`↻ Resuming session ${resumeSessionId}...`, 'log-killed');
+
+    const startTime = Date.now();
+
+    try {
+        const response = await fetch(`${API}/api/run`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ query, resume_sid: resumeSessionId }),
+        });
+
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
+        let buffer = '';
+
+        while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+
+            buffer += decoder.decode(value, { stream: true });
+            const lines = buffer.split('\n');
+            buffer = lines.pop();
+
+            for (const line of lines) {
+                if (line.startsWith('data: ')) {
+                    try {
+                        const event = JSON.parse(line.slice(6));
+                        handleEvent(event, startTime);
+                    } catch (e) {}
+                }
+            }
+        }
+    } catch (e) {
+        addLog(`Error: ${e.message}`, 'log-error');
+    }
+
+    resumeSessionId = null;
+    setRunning(false);
+    loadSessions();
+}
+
+// ── Kill Process ─────────────────────────────────────────────────────
+
+async function killProcess() {
+    try {
+        addLog('⚠ Sending kill signal...', 'log-killed');
+        const res = await fetch(`${API}/api/kill`, { method: 'POST' });
+        const data = await res.json();
+        if (data.killed) {
+            resumeSessionId = data.session_id;
+            addLog(`✓ Process killed. Session ${data.session_id} saved to disk.`, 'log-killed');
+            document.getElementById('btn-kill').style.display = 'none';
+
+            // Show resume banner
+            document.getElementById('resume-sid-display').textContent = data.session_id || '(unknown)';
+            document.getElementById('resume-banner').style.display = 'block';
+        } else {
+            addLog('No running process to kill.', 'log-error');
+        }
+    } catch (e) {
+        addLog(`Kill failed: ${e.message}`, 'log-error');
+    }
+}
+
+// ── Event Handler ────────────────────────────────────────────────────
+
+function handleEvent(event, startTime) {
+    switch (event.type) {
+        case 'start':
+            addLog(`▶ Starting query: ${event.query}`, 'log-banner');
+            if (event.resume) {
+                addLog(`  ↻ Resuming from session: ${event.resume}`, 'log-recovery');
+            }
+            break;
+        case 'session':
+            currentSessionId = event.session_id;
+            addLog(`Session: ${event.session_id}`, 'log-banner');
+            document.getElementById('dag-meta').textContent = event.session_id;
+            break;
+        case 'node':
+            addLog(event.text, 'log-node');
+            parseNodeLine(event.text);
+            break;
+        case 'recovery':
+            addLog(event.text, 'log-recovery');
+            break;
+        case 'memory':
+            addLog(event.text, 'log-memory');
+            break;
+        case 'flow':
+            addLog(event.text, 'log-error');
+            break;
+        case 'final':
+            document.getElementById('final-answer').textContent = event.answer;
+            addLog(`FINAL: ${event.answer.slice(0, 200)}`, 'log-final');
+            break;
+        case 'banner':
+            if (event.text.includes('FINAL:')) {
+                const answer = event.text.split('FINAL:')[1]?.trim();
+                if (answer) {
+                    document.getElementById('final-answer').textContent = answer;
+                }
+            }
+            break;
+        case 'killed':
+            addLog(`⚠ Process was killed (signal ${event.signal}). Session ${event.session_id} on disk.`, 'log-killed');
+            break;
+        case 'log':
+            if (event.text.trim()) addLog(event.text, '');
+            break;
+        case 'complete':
+            const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
+            document.getElementById('answer-meta').textContent =
+                `${event.session.node_count} nodes · ${elapsed}s wall-clock`;
+            if (event.session.final_answer) {
+                document.getElementById('final-answer').textContent = event.session.final_answer;
+            }
+            renderDag(event.session);
+            break;
+        case 'error':
+            addLog(`Error: ${event.text}`, 'log-error');
+            break;
+    }
+}
+
+// ── DAG Rendering ────────────────────────────────────────────────────
+
+const dagNodes = {};
+
+function parseNodeLine(text) {
+    // Parse: [n:1] planner           complete (0.8s)
+    const match = text.match(/\[(n:\d+)\]\s+(\S+)\s+(\S+)\s+\(([^)]+)\)/);
+    if (match) {
+        const [, id, skill, status, time] = match;
+        dagNodes[id] = { id, skill, status, time };
+        renderLiveDag();
+    }
+}
+
+function renderLiveDag() {
+    const canvas = document.getElementById('dag-canvas');
+    const nodes = Object.values(dagNodes);
+    if (!nodes.length) return;
+
+    let html = '';
+    for (let i = 0; i < nodes.length; i++) {
+        const node = nodes[i];
+        if (i > 0) {
+            html += buildConnector(1, 1);
+        }
+        html += `
+            <div class="dag-layer">
+                <div class="dag-node status-${node.status}" onclick="showNodeDetail('${node.id}')" style="animation-delay: ${i * 0.1}s">
+                    <div class="dag-node-skill">${node.skill}</div>
+                    <div class="dag-node-id">${node.id}</div>
+                    <div class="dag-node-time">${node.time}</div>
+                </div>
+            </div>
+        `;
+    }
+    canvas.innerHTML = html;
+}
+
+function renderDag(session) {
+    const canvas = document.getElementById('dag-canvas');
+    if (!session.nodes.length) return;
+
+    // Build adjacency for layering
+    const edges = session.edges || [];
+    const nodeMap = {};
+    session.nodes.forEach(n => { nodeMap[n.id] = n; });
+
+    // Determine layers via topological depth
+    const children = {};
+    const parents = {};
+    const allIds = session.nodes.map(n => n.id);
+
+    allIds.forEach(id => { children[id] = []; parents[id] = []; });
+    edges.forEach(e => {
+        if (children[e.from]) children[e.from].push(e.to);
+        if (parents[e.to]) parents[e.to].push(e.from);
+    });
+
+    const depth = {};
+    const queue = allIds.filter(id => parents[id].length === 0);
+    queue.forEach(id => { depth[id] = 0; });
+
+    let maxDepth = 0;
+    const visited = new Set();
+    const bfs = [...queue];
+    while (bfs.length) {
+        const id = bfs.shift();
+        if (visited.has(id)) continue;
+        visited.add(id);
+        const d = depth[id] || 0;
+        if (d > maxDepth) maxDepth = d;
+        (children[id] || []).forEach(child => {
+            depth[child] = Math.max(depth[child] || 0, d + 1);
+            bfs.push(child);
+        });
+    }
+
+    // Group by layer
+    const layers = [];
+    for (let i = 0; i <= maxDepth; i++) layers.push([]);
+    allIds.forEach(id => {
+        const d = depth[id] || 0;
+        layers[d].push(nodeMap[id]);
+    });
+
+    // Render
+    let html = '';
+    for (let i = 0; i < layers.length; i++) {
+        // Add connector between layers
+        if (i > 0) {
+            const prevCount = layers[i - 1].length;
+            const curCount = layers[i].length;
+            html += buildConnector(prevCount, curCount);
+        }
+
+        html += '<div class="dag-layer">';
+        for (let j = 0; j < layers[i].length; j++) {
+            const node = layers[i][j];
+            html += `
+                <div class="dag-node status-${node.status}" onclick="showNodeDetail('${node.id}')" style="animation-delay: ${(i * 0.15) + (j * 0.05)}s">
+                    <div class="dag-node-skill">${node.skill}</div>
+                    <div class="dag-node-id">${node.id}</div>
+                    <div class="dag-node-time">${node.elapsed_s}s</div>
+                </div>
+            `;
+        }
+        html += '</div>';
+    }
+    canvas.innerHTML = html;
+}
+
+function buildConnector(prevCount, nextCount) {
+    // Fan-out: 1 → many
+    if (prevCount === 1 && nextCount > 1) {
+        let tails = '';
+        for (let i = 0; i < nextCount; i++) {
+            tails += '<div class="dag-connector-fanout-tail"></div>';
+        }
+        return `
+            <div class="dag-connector dag-connector-fanout">
+                <div class="dag-connector-line"></div>
+                <div class="dag-connector-fanout-bar"></div>
+                <div class="dag-connector-fanout-tails">${tails}</div>
+            </div>
+        `;
+    }
+
+    // Merge: many → 1
+    if (prevCount > 1 && nextCount === 1) {
+        let tails = '';
+        for (let i = 0; i < prevCount; i++) {
+            tails += '<div class="dag-connector-merge-tail"></div>';
+        }
+        return `
+            <div class="dag-connector dag-connector-merge">
+                <div class="dag-connector-merge-tails">${tails}</div>
+                <div class="dag-connector-merge-bar"></div>
+                <div class="dag-connector-line"></div>
+            </div>
+        `;
+    }
+
+    // Simple 1:1 connector
+    return `
+        <div class="dag-connector">
+            <div class="dag-connector-line"></div>
+        </div>
+    `;
+}
+
+function clearDag() {
+    Object.keys(dagNodes).forEach(k => delete dagNodes[k]);
+    document.getElementById('dag-canvas').innerHTML =
+        '<div style="color: var(--text-muted); font-size: 13px;">Waiting for execution...</div>';
+    document.getElementById('dag-meta').textContent = '';
+}
+
+// ── Node Detail ──────────────────────────────────────────────────────
+
+async function showNodeDetail(nodeId) {
+    if (!currentSessionId) return;
+
+    try {
+        const res = await fetch(`${API}/api/session/${currentSessionId}/node/${nodeId}`);
+        const data = await res.json();
+
+        document.getElementById('modal-title').textContent = `${data.skill} — ${data.node_id}`;
+
+        let html = `
+            <div class="modal-field">
+                <label>Status</label>
+                <span class="status-badge ${data.status}">${data.status}</span>
+            </div>
+            <div class="modal-field">
+                <label>Inputs</label>
+                <div class="value">${(data.inputs || []).join(', ') || '(none)'}</div>
+            </div>
+        `;
+
+        if (data.result) {
+            html += `
+                <div class="modal-field">
+                    <label>Elapsed</label>
+                    <div class="value">${data.result.elapsed_s?.toFixed(1) || '—'}s</div>
+                </div>
+                <div class="modal-field">
+                    <label>Provider</label>
+                    <div class="value">${data.result.provider || '—'}</div>
+                </div>
+            `;
+            if (data.result.error) {
+                html += `
+                    <div class="modal-field">
+                        <label>Error</label>
+                        <pre style="color: var(--danger);">${escapeHtml(data.result.error)}</pre>
+                    </div>
+                `;
+            }
+            if (data.result.output && Object.keys(data.result.output).length) {
+                html += `
+                    <div class="modal-field">
+                        <label>Output</label>
+                        <pre>${escapeHtml(JSON.stringify(data.result.output, null, 2))}</pre>
+                    </div>
+                `;
+            }
+            if (data.result.successors && data.result.successors.length) {
+                html += `
+                    <div class="modal-field">
+                        <label>Successors Emitted</label>
+                        <pre>${escapeHtml(JSON.stringify(data.result.successors, null, 2))}</pre>
+                    </div>
+                `;
+            }
+        }
+
+        if (data.prompt_sent) {
+            html += `
+                <div class="modal-field">
+                    <label>Prompt Sent to Gateway</label>
+                    <pre>${escapeHtml(data.prompt_sent)}</pre>
+                </div>
+            `;
+        }
+
+        document.getElementById('modal-body').innerHTML = html;
+        document.getElementById('modal-overlay').classList.add('active');
+    } catch (e) {
+        console.error('Failed to load node detail:', e);
+    }
+}
+
+function closeModal(event) {
+    if (event && event.target !== document.getElementById('modal-overlay')) return;
+    document.getElementById('modal-overlay').classList.remove('active');
+}
+
+// Close modal on Escape
+document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') closeModal();
+});
+
+// ── Tests ────────────────────────────────────────────────────────────
+
+async function runTests() {
+    showResults();
+    const panel = document.getElementById('test-panel');
+    const output = document.getElementById('test-output');
+    const meta = document.getElementById('test-meta');
+
+    panel.style.display = 'block';
+    output.innerHTML = '';
+    meta.textContent = 'Running...';
+
+    try {
+        const response = await fetch(`${API}/api/test`, { method: 'POST' });
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
+        let buffer = '';
+
+        while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+            buffer += decoder.decode(value, { stream: true });
+            const lines = buffer.split('\n');
+            buffer = lines.pop();
+
+            for (const line of lines) {
+                if (line.startsWith('data: ')) {
+                    try {
+                        const event = JSON.parse(line.slice(6));
+                        if (event.type === 'test') {
+                            const cls = event.text.includes('PASSED') ? 'test-pass' :
+                                       event.text.includes('FAILED') ? 'test-fail' : '';
+                            output.innerHTML += `<div class="${cls}">${escapeHtml(event.text)}</div>`;
+                            output.scrollTop = output.scrollHeight;
+                        } else if (event.type === 'test_done') {
+                            meta.textContent = event.exit_code === 0 ? '✓ All Passed' : '✗ Some Failed';
+                            meta.style.color = event.exit_code === 0 ? 'var(--success)' : 'var(--danger)';
+                        }
+                    } catch (e) {}
+                }
+            }
+        }
+    } catch (e) {
+        output.innerHTML += `<div class="test-fail">Error: ${e.message}</div>`;
+        meta.textContent = 'Error';
+    }
+}
+
+// ── Sessions ─────────────────────────────────────────────────────────
+
+async function loadSessions() {
+    const list = document.getElementById('sessions-list');
+    try {
+        const res = await fetch(`${API}/api/sessions`);
+        const data = await res.json();
+        document.getElementById('stat-sessions').textContent = data.sessions.length;
+
+        if (!data.sessions.length) {
+            list.innerHTML = '<div class="session-item" style="color: var(--text-muted); text-align: center; cursor: default;">No sessions yet</div>';
+            return;
+        }
+
+        // Show latest 15
+        const recent = data.sessions.slice(-15).reverse();
+        list.innerHTML = recent.map(sid =>
+            `<div class="session-item" onclick="loadSession('${sid}')">${sid}</div>`
+        ).join('');
+    } catch (e) {
+        list.innerHTML = '<div class="session-item" style="color: var(--danger); text-align: center; cursor: default;">Failed to load</div>';
+    }
+}
+
+async function loadSession(sid) {
+    currentSessionId = sid;
+    showResults();
+
+    try {
+        const res = await fetch(`${API}/api/session/${sid}`);
+        const data = await res.json();
+
+        // Populate log
+        const logEl = document.getElementById('log-output');
+        logEl.innerHTML = '';
+        addLog(`Session: ${sid}`, 'log-banner');
+        addLog(`Query: ${data.query}`, 'log-banner');
+        data.nodes.forEach(n => {
+            const err = n.error ? `  err=${n.error.slice(0, 80)}` : '';
+            addLog(`[${n.id}] ${n.skill.padEnd(18)} ${n.status.padEnd(8)} (${n.elapsed_s}s)${err}`,
+                   n.status === 'complete' ? 'log-node' : n.status === 'failed' ? 'log-error' : '');
+        });
+
+        // Populate DAG
+        renderDag(data);
+        document.getElementById('dag-meta').textContent = `${sid} · ${data.node_count} nodes`;
+
+        // Populate answer
+        document.getElementById('final-answer').textContent = data.final_answer || '(no final answer)';
+        document.getElementById('answer-meta').textContent =
+            `${data.node_count} nodes · ${data.total_elapsed_s}s total`;
+
+        // Set query input
+        document.getElementById('query-input').value = data.query;
+    } catch (e) {
+        addLog(`Error loading session: ${e.message}`, 'log-error');
+    }
+}
+
+// ── Helpers ──────────────────────────────────────────────────────────
+
+function showResults() {
+    document.getElementById('content-welcome').style.display = 'none';
+    document.getElementById('content-results').style.display = 'block';
+}
+
+function setRunning(running) {
+    isRunning = running;
+    const btn = document.getElementById('btn-run');
+    const statusBar = document.getElementById('status-bar');
+
+    btn.disabled = running;
+    if (running) {
+        btn.innerHTML = '<span class="spinner active" id="spinner"></span> Running...';
+        statusBar.classList.add('active');
+    } else {
+        btn.innerHTML = '▶ Run';
+        statusBar.classList.remove('active');
+    }
+}
+
+function addLog(text, className) {
+    const el = document.getElementById('log-output');
+    const line = document.createElement('div');
+    line.className = `log-line ${className || ''}`;
+    line.textContent = text;
+    el.appendChild(line);
+    el.scrollTop = el.scrollHeight;
+}
+
+function clearLog() {
+    document.getElementById('log-output').innerHTML = '';
+}
+
+function escapeHtml(str) {
+    const div = document.createElement('div');
+    div.textContent = str;
+    return div.innerHTML;
+}
+</script>
+
+</body>
+</html>
