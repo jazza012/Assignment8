@@ -1,0 +1,128 @@
+{
+  "node_id": "n:1",
+  "skill": "planner",
+  "status": "complete",
+  "inputs": [
+    "USER_QUERY"
+  ],
+  "result": {
+    "success": true,
+    "agent_name": "planner",
+    "output": {
+      "rationale": "Summarize the Attention paper and extract acronyms from the abstract for expansion.",
+      "nodes": [
+        {
+          "skill": "researcher",
+          "inputs": [
+            "USER_QUERY"
+          ],
+          "metadata": {
+            "label": "r1",
+            "question": "Fetch the Attention paper."
+          }
+        },
+        {
+          "skill": "distiller",
+          "inputs": [
+            "n:r1"
+          ],
+          "metadata": {
+            "label": "d1",
+            "question": "Extract the abstract from the Attention paper."
+          }
+        },
+        {
+          "skill": "acronym_expander",
+          "inputs": [
+            "n:d1"
+          ],
+          "metadata": {
+            "label": "a1",
+            "question": "Extract acronyms and their expansions from the abstract."
+          }
+        },
+        {
+          "skill": "summariser",
+          "inputs": [
+            "n:d1"
+          ],
+          "metadata": {
+            "label": "s1",
+            "question": "Summarize the abstract of the Attention paper."
+          }
+        },
+        {
+          "skill": "formatter",
+          "inputs": [
+            "n:s1",
+            "n:a1"
+          ],
+          "metadata": {
+            "label": "out"
+          }
+        }
+      ]
+    },
+    "artifacts": [],
+    "successors": [
+      {
+        "skill": "researcher",
+        "inputs": [
+          "USER_QUERY"
+        ],
+        "metadata": {
+          "label": "r1",
+          "question": "Fetch the Attention paper."
+        }
+      },
+      {
+        "skill": "distiller",
+        "inputs": [
+          "n:r1"
+        ],
+        "metadata": {
+          "label": "d1",
+          "question": "Extract the abstract from the Attention paper."
+        }
+      },
+      {
+        "skill": "acronym_expander",
+        "inputs": [
+          "n:d1"
+        ],
+        "metadata": {
+          "label": "a1",
+          "question": "Extract acronyms and their expansions from the abstract."
+        }
+      },
+      {
+        "skill": "summariser",
+        "inputs": [
+          "n:d1"
+        ],
+        "metadata": {
+          "label": "s1",
+          "question": "Summarize the abstract of the Attention paper."
+        }
+      },
+      {
+        "skill": "formatter",
+        "inputs": [
+          "n:s1",
+          "n:a1"
+        ],
+        "metadata": {
+          "label": "out"
+        }
+      }
+    ],
+    "cost": 0.0,
+    "elapsed_s": 8.485816955566406,
+    "provider": "openai",
+    "error": null
+  },
+  "prompt_sent": "You are the Planner. Emit the next set of nodes for the orchestrator.\n\nAvailable skills:\n  retriever          search the agent's indexed knowledge base\n  researcher         fetch fresh content from the web (URLs, search)\n  distiller          extract structured fields from raw text\n  summariser         condense long content\n  critic             pass/fail evaluation of an upstream node\n  formatter          render the final user-facing answer (TERMINAL)\n  coder              emit Python (stub; routes to sandbox_executor)\n  sandbox_executor   run Python from coder\n  acronym_expander   extracts acronyms and abbreviations from text and provides their expansions\n  (browser           reserved for Session 9)\n\nOutput (JSON, no markdown):\n{\n  \"rationale\": \"<one sentence>\",\n  \"nodes\": [\n    {\"skill\": \"<name>\",\n     \"inputs\": [\"USER_QUERY\" or \"n:<label>\" or \"art:<id>\"],\n     \"metadata\": {\"label\": \"<short_id>\", \"question\": \"<optional hint>\"}}\n  ]\n}\n\nReference upstream nodes as \"n:<label>\" where label matches a\nsibling's metadata.label. The final node must be a formatter.\n\nWhen the user asks to compare or process N concrete items\n(\"compare A, B, C\" / \"top 3 results\"), emit one node per item so\nthe orchestrator can run them in parallel. Do NOT consolidate.\n\nWhen the user demands a strict format constraint the writer might\nmiss (\"exactly 5-7-5 syllables\", \"valid JSON\", \"≤ 280 characters\"),\ninsert a `critic` node between the writing node and the formatter.\nIts input is the writing node id. Its metadata.question repeats\nthe constraint. If the critic fails, the orchestrator re-plans.\n\nIf MEMORY HITS appear in the prompt, the agent already has indexed\nmaterial relevant to this query (FAISS-ranked vector hits with\nchunks). Prefer routing the answer through the existing knowledge\nbase: emit a `retriever` or, when the hits clearly answer the query\nalready, go straight to a `formatter` that synthesises from MEMORY\nHITS — do NOT emit a `researcher` to re-fetch material the agent\nhas already indexed.\n\nIf FAILURE appears in the prompt, do not re-emit the failing step\non the same inputs.\n\nExample 1:\nUSER_QUERY: Fetch https://en.wikipedia.org/wiki/Claude_Shannon and tell me his birth date, death date, and three key contributions to information theory.\n{\"rationale\": \"Fetch the specified Wikipedia page, extract the birth/death dates and contributions, and format the final answer.\",\n \"nodes\": [\n   {\"skill\":\"researcher\",\"inputs\":[\"USER_QUERY\"],\"metadata\":{\"label\":\"r1\",\"question\":\"Fetch the content of https://en.wikipedia.org/wiki/Claude_Shannon\"}},\n   {\"skill\":\"distiller\",\"inputs\":[\"n:r1\"],\"metadata\":{\"label\":\"d1\",\"question\":\"Extract birth date, death date, and three key contributions to information theory.\"}},\n   {\"skill\":\"formatter\",\"inputs\":[\"n:d1\"],\"metadata\":{\"label\":\"out\"}}\n ]}\n\nExample 2:\nUSER_QUERY: For Lagos, Cairo, and Kinshasa, find current populations and growth rates and tell me which is growing fastest.\n{\"rationale\": \"Fetch populations/growth rates for Lagos, Cairo, and Kinshasa concurrently, then use a Coder to perform the comparison and identify the fastest growing city.\",\n \"nodes\": [\n   {\"skill\":\"researcher\",\"inputs\":[\"USER_QUERY\"],\"metadata\":{\"label\":\"r1\",\"question\":\"Retrieve current population and growth rate for Lagos\"}},\n   {\"skill\":\"researcher\",\"inputs\":[\"USER_QUERY\"],\"metadata\":{\"label\":\"r2\",\"question\":\"Retrieve current population and growth rate for Cairo\"}},\n   {\"skill\":\"researcher\",\"inputs\":[\"USER_QUERY\"],\"metadata\":{\"label\":\"r3\",\"question\":\"Retrieve current population and growth rate for Kinshasa\"}},\n   {\"skill\":\"coder\",\"inputs\":[\"n:r1\", \"n:r2\", \"n:r3\"],\"metadata\":{\"label\":\"c1\",\"question\":\"Write a python script that parses the population and growth rates of Lagos, Cairo, and Kinshasa, calculates/compares them, and outputs which is growing fastest.\"}},\n   {\"skill\":\"formatter\",\"inputs\":[\"n:c1\"],\"metadata\":{\"label\":\"out\"}}\n ]}\n\nExample 3:\nUSER_QUERY: Read /nonexistent/path.txt and tell me what's in it.\n{\"rationale\": \"The requested file path is nonexistent, so fail-fast by calling the Formatter directly.\",\n \"nodes\": [\n   {\"skill\":\"formatter\",\"inputs\":[\"USER_QUERY\"],\"metadata\":{\"label\":\"out\"}}\n ]}\n\nUSER_QUERY: Summarize the Attention paper and list all acronyms used in the abstract with their expansions using the acronym_expander.\n\nINPUTS:\n[\n  {\n    \"id\": \"USER_QUERY\",\n    \"kind\": \"query\",\n    \"value\": \"Summarize the Attention paper and list all acronyms used in the abstract with their expansions using the acronym_expander.\"\n  }\n]",
+  "started_at": 1780540492.237113,
+  "completed_at": 1780540500.7229302,
+  "retries": 0
+}

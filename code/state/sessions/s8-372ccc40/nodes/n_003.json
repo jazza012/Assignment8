@@ -1,0 +1,49 @@
+{
+  "node_id": "n:3",
+  "skill": "distiller",
+  "status": "complete",
+  "inputs": [
+    "n:2"
+  ],
+  "result": {
+    "success": true,
+    "agent_name": "distiller",
+    "output": {
+      "fields": {
+        "publications": [
+          {
+            "title": "_A Symbolic Analysis of Relay and Switching Circuits_",
+            "year": "1937"
+          },
+          {
+            "title": "\"A Mathematical Theory of Communication\"",
+            "year": "1948"
+          },
+          {
+            "title": "Claude E. Shannon and Warren Weaver: _The Mathematical Theory of Communication_",
+            "year": "1949"
+          },
+          {
+            "title": "_Communication Theory of Secrecy Systems_",
+            "year": "1949"
+          },
+          {
+            "title": "\"Programming a Computer for Playing Chess\"",
+            "year": "1950"
+          }
+        ]
+      },
+      "rationale": "The findings list five academic publications along with their publication years."
+    },
+    "artifacts": [],
+    "successors": [],
+    "cost": 0.0,
+    "elapsed_s": 8.107316493988037,
+    "provider": "openai",
+    "error": null
+  },
+  "prompt_sent": "You are the Distiller skill. You receive raw text (typically the\n`findings` of one or more Researcher nodes, or the `chunks` of a\nRetriever node) and produce a small structured record.\n\nYou make no tool calls. You do no web access. Everything you need is\nalready in the prompt under INPUTS.\n\nProcedure:\n  1. Identify what fields the user's question implies (people, dates,\n     numbers, comparisons, percentages, attributions).\n  2. Pull those fields out of the inputs.\n  3. Emit a compact JSON record. Fields with no evidence in the inputs\n     are omitted, not made up.\n\nOutput schema (JSON, no prose, no markdown fences):\n\n  {\n    \"fields\": { \"<field_name>\": \"<value>\", ... },\n    \"rationale\": \"<one short sentence saying which input supports each field>\"\n  }\n\nNotes:\n  - The fields dictionary is the load-bearing output; downstream\n    Formatter nodes read it.\n  - When the question is a comparison (`fastest growing`, `largest`),\n    emit a `comparison` key with `winner: <id>` and `reason: <short>`.\n  - When the question's evidence is missing, set `fields: {}` and put\n    the gap in `rationale`. Do not invent.\n\nA Critic node may run after you. Its evaluation will fail if you\ninvented fields or made claims unsupported by the inputs.\n\nUSER_QUERY: Fetch https://en.wikipedia.org/wiki/Claude_Shannon and extract exactly five academic publications with their exact publication years.\n\nINPUTS:\n[\n  {\n    \"id\": \"n:2\",\n    \"kind\": \"upstream\",\n    \"skill\": \"researcher\",\n    \"output\": {\n      \"question\": \"Fetch https://en.wikipedia.org/wiki/Claude_Shannon and extract exactly five academic publications with their exact publication years.\",\n      \"sources\": [\n        {\n          \"url\": \"https://en.wikipedia.org/wiki/Claude_Shannon\",\n          \"title\": \"Claude Shannon\"\n        }\n      ],\n      \"findings\": \"1. _A Symbolic Analysis of Relay and Switching Circuits_, master's thesis, MIT, 1937. 2. \\\"A Mathematical Theory of Communication\\\", _Bell System Technical Journal_, Vol. 27, pp. 379\\u2013423, 623\\u2013656, 1948. 3. Claude E. Shannon and Warren Weaver: _The Mathematical Theory of Communication_, The University of Illinois Press, Urbana, Illinois, 1949. 4. _Communication Theory of Secrecy Systems_, Bell System Technical Journal, 1949. 5. \\\"Programming a Computer for Playing Chess\\\", _Philosophical Magazine_, 1950.\"\n    }\n  }\n]",
+  "started_at": 1780560165.1508636,
+  "completed_at": 1780560173.2581804,
+  "retries": 0
+}

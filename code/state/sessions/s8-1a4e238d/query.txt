@@ -1,0 +1,1 @@
+Calculate the frequency of the terms 'attention', 'weight', and 'model' in all five papers in the papers directory. Output a Markdown table showing the frequencies, mean, and variance.

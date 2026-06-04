@@ -1,0 +1,77 @@
+{
+  "directed": true,
+  "multigraph": false,
+  "graph": {},
+  "nodes": [
+    {
+      "skill": "planner",
+      "inputs": [
+        "USER_QUERY"
+      ],
+      "metadata": {},
+      "status": "complete",
+      "result": {
+        "success": true,
+        "agent_name": "planner",
+        "output": {
+          "rationale": "The requested file path is nonexistent, so fail-fast by calling the Formatter directly.",
+          "nodes": [
+            {
+              "skill": "formatter",
+              "inputs": [
+                "USER_QUERY"
+              ],
+              "metadata": {
+                "label": "out"
+              }
+            }
+          ]
+        },
+        "artifacts": [],
+        "successors": [
+          {
+            "skill": "formatter",
+            "inputs": [
+              "USER_QUERY"
+            ],
+            "metadata": {
+              "label": "out"
+            }
+          }
+        ],
+        "cost": 0.0,
+        "elapsed_s": 4.715429306030273,
+        "provider": "openai",
+        "error": null
+      },
+      "_result_typed": true,
+      "id": "n:1"
+    },
+    {
+      "skill": "formatter",
+      "inputs": [
+        "USER_QUERY"
+      ],
+      "metadata": {
+        "label": "out"
+      },
+      "status": "complete",
+      "result": {
+        "success": true,
+        "agent_name": "formatter",
+        "output": {
+          "final_answer": "The file /nonexistent/path.txt could not be found."
+        },
+        "artifacts": [],
+        "successors": [],
+        "cost": 0.0,
+        "elapsed_s": 3.4581453800201416,
+        "provider": "openai",
+        "error": null
+      },
+      "_result_typed": true,
+      "id": "n:2"
+    }
+  ],
+  "edges": []
+}

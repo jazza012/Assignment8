@@ -1,0 +1,26 @@
+{
+  "node_id": "n:4",
+  "skill": "critic",
+  "status": "complete",
+  "inputs": [
+    "n:3"
+  ],
+  "result": {
+    "success": true,
+    "agent_name": "critic",
+    "output": {
+      "verdict": "fail",
+      "rationale": "The output contains two publications from 1949, which exceeds the requested five distinct publications."
+    },
+    "artifacts": [],
+    "successors": [],
+    "cost": 0.0,
+    "elapsed_s": 3.92995023727417,
+    "provider": "openai",
+    "error": null
+  },
+  "prompt_sent": "You are the Critic skill. You evaluate one upstream node's output and\nreturn pass-or-fail with a short rationale.\n\nYou make no tool calls. The upstream output and (when the orchestrator\nhas it) the inputs that node received both appear in the prompt.\n\nProcedure:\n  1. Read the UPSTREAM_OUTPUT.\n  2. Check it against the INPUTS that produced it.\n  3. Look for: fabricated fields, claims unsupported by the input,\n     contradictions, missing fields the input clearly contained.\n  4. Emit pass or fail.\n\nOutput schema (JSON, no prose, no markdown fences):\n\n  {\n    \"verdict\": \"pass\" | \"fail\",\n    \"rationale\": \"<one or two short sentences>\"\n  }\n\nWhen you emit `fail`, the orchestrator may invoke the Planner to\nrecover. Be specific in your rationale so the recovery plan can be\ntargeted. Do not fail for stylistic reasons; only fail when the\nupstream output is wrong, missing, or unsupported.\n\nUSER_QUERY: Fetch https://en.wikipedia.org/wiki/Claude_Shannon and extract exactly five academic publications with their exact publication years.\n\nINPUTS:\n[\n  {\n    \"id\": \"n:3\",\n    \"kind\": \"upstream\",\n    \"skill\": \"distiller\",\n    \"output\": {\n      \"fields\": {\n        \"publications\": [\n          {\n            \"title\": \"_A Symbolic Analysis of Relay and Switching Circuits_\",\n            \"year\": \"1937\"\n          },\n          {\n            \"title\": \"\\\"A Mathematical Theory of Communication\\\"\",\n            \"year\": \"1948\"\n          },\n          {\n            \"title\": \"Claude E. Shannon and Warren Weaver: _The Mathematical Theory of Communication_\",\n            \"year\": \"1949\"\n          },\n          {\n            \"title\": \"_Claude Shannon: Collected Works_\",\n            \"year\": \"1993\"\n          },\n          {\n            \"title\": \"\\\"Communication Theory of Secrecy Systems\\\"\",\n            \"year\": \"1949\"\n          }\n        ]\n      },\n      \"rationale\": \"The findings list five academic publications along with their publication years.\"\n    }\n  }\n]",
+  "started_at": 1780547529.7197046,
+  "completed_at": 1780547533.6496549,
+  "retries": 0
+}

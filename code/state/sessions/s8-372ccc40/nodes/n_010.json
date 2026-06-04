@@ -1,0 +1,26 @@
+{
+  "node_id": "n:10",
+  "skill": "critic",
+  "status": "complete",
+  "inputs": [
+    "n:9"
+  ],
+  "result": {
+    "success": true,
+    "agent_name": "critic",
+    "output": {
+      "verdict": "fail",
+      "rationale": "The output is missing the publication type and source for each publication, which were clearly present in the input findings."
+    },
+    "artifacts": [],
+    "successors": [],
+    "cost": 0.0,
+    "elapsed_s": 4.262457847595215,
+    "provider": "openai",
+    "error": null
+  },
+  "prompt_sent": "You are the Critic skill. You evaluate one upstream node's output and\nreturn pass-or-fail with a short rationale.\n\nYou make no tool calls. The upstream output and (when the orchestrator\nhas it) the inputs that node received both appear in the prompt.\n\nProcedure:\n  1. Read the UPSTREAM_OUTPUT.\n  2. Check it against the INPUTS that produced it.\n  3. Look for: fabricated fields, claims unsupported by the input,\n     contradictions, missing fields the input clearly contained.\n  4. Emit pass or fail.\n\nOutput schema (JSON, no prose, no markdown fences):\n\n  {\n    \"verdict\": \"pass\" | \"fail\",\n    \"rationale\": \"<one or two short sentences>\"\n  }\n\nWhen you emit `fail`, the orchestrator may invoke the Planner to\nrecover. Be specific in your rationale so the recovery plan can be\ntargeted. Do not fail for stylistic reasons; only fail when the\nupstream output is wrong, missing, or unsupported.\n\nUSER_QUERY: Fetch https://en.wikipedia.org/wiki/Claude_Shannon and extract exactly five academic publications with their exact publication years.\n\nINPUTS:\n[\n  {\n    \"id\": \"n:9\",\n    \"kind\": \"upstream\",\n    \"skill\": \"distiller\",\n    \"output\": {\n      \"fields\": {\n        \"publications\": [\n          {\n            \"title\": \"A Symbolic Analysis of Relay and Switching Circuits\",\n            \"year\": \"1937\"\n          },\n          {\n            \"title\": \"A Mathematical Theory of Communication\",\n            \"year\": \"1948\"\n          },\n          {\n            \"title\": \"The Mathematical Theory of Communication\",\n            \"year\": \"1949\"\n          },\n          {\n            \"title\": \"Communication Theory of Secrecy Systems\",\n            \"year\": \"1949\"\n          },\n          {\n            \"title\": \"Prediction and Entropy of Printed English\",\n            \"year\": \"1951\"\n          }\n        ]\n      },\n      \"rationale\": \"The findings list five academic publications along with their publication years.\"\n    }\n  },\n  {\n    \"id\": \"n:9_inputs\",\n    \"kind\": \"upstream_inputs\",\n    \"value\": [\n      {\n        \"id\": \"n:8\",\n        \"kind\": \"upstream\",\n        \"skill\": \"researcher\",\n        \"output\": {\n          \"question\": \"Fetch https://en.wikipedia.org/wiki/Claude_Shannon and extract exactly five academic publications with their exact publication years.\",\n          \"sources\": [\n            {\n              \"url\": \"https://en.wikipedia.org/wiki/Claude_Shannon\",\n              \"title\": \"Claude Shannon\"\n            }\n          ],\n          \"findings\": \"1. A Symbolic Analysis of Relay and Switching Circuits, Master's Thesis, MIT, 1937. 2. A Mathematical Theory of Communication, Bell System Technical Journal, Vol. 27, pp. 379\\u2013423, 623\\u2013656, 1948. 3. The Mathematical Theory of Communication, The University of Illinois Press, Urbana, Illinois, 1949. 4. Communication Theory of Secrecy Systems, Bell System Technical Journal, 1949. 5. Prediction and Entropy of Printed English, 1951.\"\n        }\n      }\n    ]\n  }\n]\n\nTARGET_NODE_SUBTASK: Extract exactly five academic publications with their exact publication years, including publication type and source.",
+  "started_at": 1780560208.1839972,
+  "completed_at": 1780560212.446455,
+  "retries": 0
+}

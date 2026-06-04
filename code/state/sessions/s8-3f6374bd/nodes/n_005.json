@@ -1,0 +1,35 @@
+{
+  "node_id": "n:5",
+  "skill": "summariser",
+  "status": "complete",
+  "inputs": [
+    "n:3"
+  ],
+  "result": {
+    "success": true,
+    "agent_name": "summariser",
+    "output": {
+      "summary": "The paper 'Attention Is All You Need' introduces the Transformer architecture, a neural network model for natural language processing (NLP) that relies entirely on attention mechanisms, addressing limitations of traditional models like RNNs and CNNs. It employs self-attention for contextual relationships and consists of an encoder and decoder with multi-head attention, demonstrating superior performance on translation benchmarks.",
+      "preserved_facts": [
+        "Title: 'Attention Is All You Need'",
+        "Introduces the Transformer architecture",
+        "Focuses on natural language processing (NLP)",
+        "Uses attention mechanisms",
+        "Addresses limitations of RNNs and CNNs",
+        "Employs self-attention for contextual relationships",
+        "Consists of an encoder and decoder with multi-head attention",
+        "Demonstrates superior performance on translation benchmarks"
+      ]
+    },
+    "artifacts": [],
+    "successors": [],
+    "cost": 0.0,
+    "elapsed_s": 5.420430898666382,
+    "provider": "openai",
+    "error": null
+  },
+  "prompt_sent": "You are the Summariser skill. You take a long input and produce a short\nform that preserves the load-bearing content.\n\nYou make no tool calls. The input arrives in the prompt under INPUTS.\n\nProcedure:\n  1. Read the input.\n  2. Identify the load-bearing claims (the facts, dates, names, numbers\n     a downstream reader would have to know).\n  3. Emit a short summary that preserves them. Aim for 4–8 sentences for\n     a paper-length input; one paragraph for a single-page input.\n\nOutput schema (JSON, no prose, no markdown fences):\n\n  {\n    \"summary\": \"<the short summary>\",\n    \"preserved_facts\": [\"<fact 1>\", \"<fact 2>\", ...]\n  }\n\n`preserved_facts` is a short bullet list of the specific items you kept,\nso a downstream Critic can check none were dropped silently.\n\nUSER_QUERY: Summarize the Attention paper and list all acronyms used in the abstract with their expansions using the acronym_expander.\n\nINPUTS:\n[\n  {\n    \"id\": \"n:3\",\n    \"kind\": \"upstream\",\n    \"skill\": \"distiller\",\n    \"output\": {\n      \"fields\": {\n        \"summary\": \"The paper 'Attention Is All You Need' introduces the Transformer architecture, a neural network model for natural language processing (NLP) that relies entirely on attention mechanisms, addressing limitations of traditional models like RNNs and CNNs. It uses self-attention for contextual relationships, consists of an encoder and decoder with multi-head attention, and demonstrates superior performance on translation benchmarks.\",\n        \"acronyms\": {\n          \"NLP\": \"Natural Language Processing\",\n          \"RNN\": \"Recurrent Neural Network\",\n          \"CNN\": \"Convolutional Neural Network\",\n          \"LLM\": \"Large Language Model\"\n        }\n      },\n      \"rationale\": \"The summary is derived from the findings about the Transformer architecture and its advantages, while the acronyms and their expansions are explicitly listed in the findings.\"\n    }\n  }\n]",
+  "started_at": 1780540548.4082026,
+  "completed_at": 1780540553.8286338,
+  "retries": 0
+}

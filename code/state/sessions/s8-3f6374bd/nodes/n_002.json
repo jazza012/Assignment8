@@ -1,0 +1,36 @@
+{
+  "node_id": "n:2",
+  "skill": "researcher",
+  "status": "complete",
+  "inputs": [
+    "USER_QUERY"
+  ],
+  "result": {
+    "success": true,
+    "agent_name": "researcher",
+    "output": {
+      "question": "Summarize the Attention paper and list all acronyms used in the abstract with their expansions using the acronym_expander.",
+      "sources": [
+        {
+          "url": "https://www.shaunabram.com/paper-summary-attention-is-all-you-need/",
+          "title": "Paper summary: Attention is all you need"
+        },
+        {
+          "url": "https://iq.opengenus.org/attention-is-all-you-need-summary/",
+          "title": "Attention Is All You Need: Paper Summary and Insights"
+        }
+      ],
+      "findings": "The paper 'Attention Is All You Need' introduces the Transformer architecture, a neural network model for natural language processing (NLP) that relies entirely on attention mechanisms. This architecture is designed to address the limitations of traditional models, such as recurrent neural networks (RNNs) and convolutional neural networks (CNNs), which struggle with long-range dependencies and require sequential processing. The Transformer uses self-attention to allow the model to weigh the significance of different words in a sequence, enabling it to capture contextual relationships more effectively. It consists of an encoder and a decoder, both using multi-head attention to enhance the model's understanding of different aspects of the input data.\n\nThe paper also discusses the computational efficiency of the Transformer over traditional methods, highlighting its faster training times and effectiveness in various NLP tasks, including machine translation and text summarization. The authors present empirical results demonstrating the model's superior performance on translation benchmarks, significantly outperforming previous state-of-the-art models.\n\nKey acronyms used in the abstract include: NLP (Natural Language Processing), RNN (Recurrent Neural Network), CNN (Convolutional Neural Network), and LLM (Large Language Model)."
+    },
+    "artifacts": [],
+    "successors": [],
+    "cost": 0.0,
+    "elapsed_s": 42.570847272872925,
+    "provider": "openai",
+    "error": null
+  },
+  "prompt_sent": "You are the Researcher skill. You go to the web for a specific question\nand bring back normalised text the rest of the DAG can work from.\n\nYour tool surface is two MCP tools: `web_search(query, max_results)` and\n`fetch_url(url)`. Use them. Do not narrate; do not invent other tools.\n\nProcedure:\n  1. Read the QUESTION in the prompt.\n  2. Issue ONE `web_search` to get candidate URLs.\n  3. Pick the 1–3 most authoritative-looking URLs and fetch them with\n     `fetch_url` in sequence. Avoid clearly low-signal results (aggregator\n     spam, ad redirects).\n  4. Synthesise the relevant content from the fetched pages.\n\nTime budget: keep tool calls to 4 max per invocation. If a `fetch_url`\nreturns very little usable text, do not retry; move on.\n\nOutput schema (JSON, no prose, no markdown fences):\n\n  {\n    \"question\": \"<the question this run answered>\",\n    \"sources\": [{\"url\": \"<url>\", \"title\": \"<title>\"}, ...],\n    \"findings\": \"<2–6 short paragraphs of normalised text>\"\n  }\n\nYou do NOT produce the final user-facing answer. The downstream\ndistiller or formatter does that. If the question cannot be answered\nfrom the web within your budget, return `\"findings\": \"(not found)\"`\nand let the next node decide.\n\nUSER_QUERY: Summarize the Attention paper and list all acronyms used in the abstract with their expansions using the acronym_expander.\n\nINPUTS:\n[\n  {\n    \"id\": \"USER_QUERY\",\n    \"kind\": \"query\",\n    \"value\": \"Summarize the Attention paper and list all acronyms used in the abstract with their expansions using the acronym_expander.\"\n  }\n]",
+  "started_at": 1780540500.7254674,
+  "completed_at": 1780540543.296315,
+  "retries": 0
+}
